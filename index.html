@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRE Planner 2026 - Mission Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        app: {
+                            bg: '#0B1120',
+                            card: 'rgba(30, 41, 59, 0.7)',
+                            glass: 'rgba(255, 255, 255, 0.05)',
+                            border: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0B1120;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        .glass-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .checkbox-custom {
+            appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.25rem;
+            background: rgba(15, 23, 42, 0.5);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .checkbox-custom:checked {
+            background: #10b981;
+            border-color: #10b981;
+        }
+        .checkbox-custom:checked::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.75rem;
+        }
+
+        /* Nav Link Active State */
+        .nav-link.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border-right: 3px solid #3b82f6;
+        }
+
+        /* Circular Progress */
+        .circular-chart {
+            display: block;
+            margin: 0 auto;
+            max-width: 80%;
+            max-height: 250px;
+        }
+        .circle-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 3.8;
+        }
+        .circle {
+            fill: none;
+            stroke-width: 2.8;
+            stroke-linecap: round;
+            animation: progress 1s ease-out forwards;
+        }
+        @keyframes progress {
+            0% { stroke-dasharray: 0 100; }
+        }
+        .percentage {
+            fill: #fff;
+            font-family: sans-serif;
+            font-size: 0.5em;
+            text-anchor: middle;
+            font-weight: bold;
+        }
+
+        .view-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .view-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Modal */
+        #modal-overlay {
+            backdrop-filter: blur(5px);
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-app-bg border-r border-app-border hidden md:flex flex-col z-20 h-full">
+        <div class="p-6 border-b border-app-border">
+            <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                <i class="fas fa-rocket mr-2 text-blue-400"></i>Pre Tracker
+            </h1>
+            <p class="text-xs text-gray-400 mt-1">60-Day Mission 2026</p>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-1">
+                <li>
+                    <a href="#" onclick="navigate('home')" id="nav-home" class="nav-link flex items-center px-6 py-3 text-gray-300 hover:bg-white/5 hover:text-white transition-colors active">
+                        <i class="fas fa-home w-6"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="navigate('planner')" id="nav-planner" class="nav-link flex items-center px-6 py-3 text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                        <i class="fas fa-calendar-alt w-6"></i> Day Planner
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="navigate('progress')" id="nav-progress" class="nav-link flex items-center px-6 py-3 text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                        <i class="fas fa-chart-pie w-6"></i> Analytics
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="navigate('weak-areas')" id="nav-weak-areas" class="nav-link flex items-center px-6 py-3 text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                        <i class="fas fa-crosshairs w-6"></i> Weak Areas
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="navigate('revision')" id="nav-revision" class="nav-link flex items-center px-6 py-3 text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                        <i class="fas fa-book-open w-6"></i> Revision Vault
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="navigate('full-mocks')" id="nav-full-mocks" class="nav-link flex items-center px-6 py-3 text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                        <i class="fas fa-laptop-code w-6"></i> Full Mocks
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="p-4 border-t border-app-border text-center text-xs text-gray-500">
+            <button onclick="resetData()" class="text-red-400 hover:text-red-300 underline"><i class="fas fa-trash-alt mr-1"></i>Reset All Data</button>
+        </div>
+    </aside>
+
+    <!-- Mobile Header -->
+    <div class="md:hidden fixed top-0 w-full bg-app-bg/90 backdrop-blur-md border-b border-app-border z-30 flex justify-between items-center p-4">
+        <h1 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+            Pre Tracker
+        </h1>
+        <button id="mobile-menu-btn" class="text-gray-300 hover:text-white">
+            <i class="fas fa-bars text-xl"></i>
+        </button>
+    </div>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-app-bg z-40 hidden flex-col pt-16">
+        <button id="close-menu-btn" class="absolute top-4 right-4 text-gray-300 text-2xl"><i class="fas fa-times"></i></button>
+        <nav class="flex-1">
+             <ul class="space-y-2 text-lg p-6">
+                 <!-- Populated by JS essentially same as desktop -->
+                <li><a href="#" onclick="navigate('home'); closeMobileMenu()" class="block py-3 text-gray-300 hover:text-blue-400"><i class="fas fa-home w-8"></i> Dashboard</a></li>
+                <li><a href="#" onclick="navigate('planner'); closeMobileMenu()" class="block py-3 text-gray-300 hover:text-blue-400"><i class="fas fa-calendar-alt w-8"></i> Day Planner</a></li>
+                <li><a href="#" onclick="navigate('progress'); closeMobileMenu()" class="block py-3 text-gray-300 hover:text-blue-400"><i class="fas fa-chart-pie w-8"></i> Analytics</a></li>
+                <li><a href="#" onclick="navigate('weak-areas'); closeMobileMenu()" class="block py-3 text-gray-300 hover:text-blue-400"><i class="fas fa-crosshairs w-8"></i> Weak Areas</a></li>
+                <li><a href="#" onclick="navigate('revision'); closeMobileMenu()" class="block py-3 text-gray-300 hover:text-blue-400"><i class="fas fa-book-open w-8"></i> Revision Vault</a></li>
+                <li><a href="#" onclick="navigate('full-mocks'); closeMobileMenu()" class="block py-3 text-gray-300 hover:text-blue-400"><i class="fas fa-laptop-code w-8"></i> Full Mocks</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 h-full overflow-y-auto relative pt-16 md:pt-0 pb-10">
+        <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+            
+            <!-- VIEW: Home Dashboard -->
+            <section id="view-home" class="view-section active space-y-6">
+                <!-- Header & Countdown -->
+                <div class="flex flex-col lg:flex-row gap-6 justify-between items-start">
+                    <div>
+                        <h2 class="text-3xl font-bold text-white mb-2">Welcome Back, Aspirant</h2>
+                        <p class="text-gray-400">Your 60-Day Mission 2026 is active.</p>
+                    </div>
+                    <div class="glass-card px-6 py-4 flex items-center gap-4 bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-blue-500/30">
+                        <i class="fas fa-hourglass-half text-2xl text-blue-400 animate-pulse"></i>
+                        <div>
+                            <p class="text-sm text-blue-200">Exam Countdown</p>
+                            <p class="text-2xl font-bold text-white"><span id="dash-countdown">--</span> Days Left</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motivation -->
+                <div class="glass-card p-4 text-center border-l-4 border-l-purple-500">
+                    <p id="motivational-quote" class="text-lg font-medium italic text-gray-300">"Loading motivation..."</p>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div class="glass-card p-4 text-center">
+                        <p class="text-xs text-gray-400 mb-1">Days Completed</p>
+                        <p class="text-3xl font-bold text-blue-400" id="stat-days-completed">0</p>
+                        <p class="text-xs text-gray-500 mt-1">out of 60</p>
+                    </div>
+                    <div class="glass-card p-4 text-center">
+                        <p class="text-xs text-gray-400 mb-1">Overall Progress</p>
+                        <p class="text-3xl font-bold text-green-400"><span id="stat-overall-progress">0</span>%</p>
+                        <p class="text-xs text-gray-500 mt-1">tasks done</p>
+                    </div>
+                    <div class="glass-card p-4 text-center">
+                        <p class="text-xs text-gray-400 mb-1">Current Streak</p>
+                        <p class="text-3xl font-bold text-orange-400" id="stat-current-streak">0</p>
+                        <p class="text-xs text-gray-500 mt-1"><i class="fas fa-fire text-orange-500"></i> days</p>
+                    </div>
+                    <div class="glass-card p-4 text-center">
+                        <p class="text-xs text-gray-400 mb-1">Best Streak</p>
+                        <p class="text-3xl font-bold text-yellow-400" id="stat-best-streak">0</p>
+                        <p class="text-xs text-gray-500 mt-1">record</p>
+                    </div>
+                    <div class="glass-card p-4 text-center">
+                        <p class="text-xs text-gray-400 mb-1">Full Mocks</p>
+                        <p class="text-3xl font-bold text-purple-400" id="stat-total-mocks">0</p>
+                        <p class="text-xs text-gray-500 mt-1">attempted</p>
+                    </div>
+                    <div class="glass-card p-4 text-center">
+                        <p class="text-xs text-gray-400 mb-1">Avg Accuracy</p>
+                        <p class="text-3xl font-bold text-pink-400"><span id="stat-avg-accuracy">0</span>%</p>
+                        <p class="text-xs text-gray-500 mt-1">in full mocks</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <h3 class="text-xl font-semibold mt-8 mb-4 border-b border-gray-700 pb-2">Quick Access</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button onclick="navigate('planner')" class="glass-card p-6 flex flex-col items-center justify-center gap-3 hover:bg-blue-600/20 group">
+                        <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-calendar-check text-xl"></i>
+                        </div>
+                        <span class="font-medium">Go to Day Planner</span>
+                    </button>
+                    <button onclick="navigate('full-mocks')" class="glass-card p-6 flex flex-col items-center justify-center gap-3 hover:bg-purple-600/20 group">
+                        <div class="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-edit text-xl"></i>
+                        </div>
+                        <span class="font-medium">Add Mock Analysis</span>
+                    </button>
+                     <button onclick="navigate('weak-areas')" class="glass-card p-6 flex flex-col items-center justify-center gap-3 hover:bg-red-600/20 group">
+                        <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-shield-alt text-xl"></i>
+                        </div>
+                        <span class="font-medium">Update Weak Areas</span>
+                    </button>
+                     <button onclick="navigate('revision')" class="glass-card p-6 flex flex-col items-center justify-center gap-3 hover:bg-green-600/20 group">
+                        <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-book text-xl"></i>
+                        </div>
+                        <span class="font-medium">Revision Vault</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- VIEW: Day Planner Grid -->
+            <section id="view-planner" class="view-section">
+                <div class="mb-6 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold">Day Planner</h2>
+                        <p class="text-gray-400 text-sm">Select a day to log your tasks and mocks.</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-3" id="days-grid">
+                    <!-- Days will be generated by JS -->
+                </div>
+            </section>
+
+            <!-- VIEW: Day Details -->
+            <section id="view-day-details" class="view-section">
+                <div class="mb-6 flex items-center gap-4">
+                    <button onclick="navigate('planner')" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-2xl font-bold" id="detail-day-title">Day X</h2>
+                        <p class="text-gray-400 text-sm" id="detail-day-subtitle">Track your daily progress</p>
+                    </div>
+                    <div class="ml-auto flex items-center gap-3">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-xs text-gray-400">Completion</p>
+                            <p class="font-bold text-lg text-green-400" id="detail-day-percent">0%</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-full border-4 border-gray-700 flex items-center justify-center" id="detail-day-ring" style="border-top-color: #10b981; transform: rotate(-45deg);">
+                            <span class="text-xs font-bold" style="transform: rotate(45deg);" id="detail-day-ring-text">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Math -->
+                    <div class="glass-card p-5 border-t-4 border-t-blue-500 flex flex-col h-full">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="fas fa-calculator text-blue-400"></i> Mathematics</h3>
+                        <div class="space-y-3 flex-1" id="tasks-maths">
+                            <!-- Tasks injected by JS -->
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-700">
+                            <label class="text-xs text-gray-400 mb-1 block">Notes / Learnings</label>
+                            <textarea id="notes-maths" class="glass-input text-sm h-20 resize-none" placeholder="Tricks, mistakes..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- English -->
+                    <div class="glass-card p-5 border-t-4 border-t-purple-500 flex flex-col h-full">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="fas fa-font text-purple-400"></i> English</h3>
+                        <div class="space-y-3 flex-1" id="tasks-english">
+                            <!-- Tasks injected by JS -->
+                        </div>
+                         <div class="mt-4 pt-4 border-t border-gray-700">
+                            <label class="text-xs text-gray-400 mb-1 block">Notes / Vocab</label>
+                            <textarea id="notes-english" class="glass-input text-sm h-20 resize-none" placeholder="New words, rules..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Reasoning -->
+                    <div class="glass-card p-5 border-t-4 border-t-green-500 flex flex-col h-full">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="fas fa-brain text-green-400"></i> Reasoning</h3>
+                        <div class="space-y-3 flex-1" id="tasks-reasoning">
+                            <!-- Tasks injected by JS -->
+                        </div>
+                         <div class="mt-4 pt-4 border-t border-gray-700">
+                            <label class="text-xs text-gray-400 mb-1 block">Notes / Patterns</label>
+                            <textarea id="notes-reasoning" class="glass-input text-sm h-20 resize-none" placeholder="Logic patterns found..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- GK -->
+                    <div class="glass-card p-5 border-t-4 border-t-yellow-500 flex flex-col h-full">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="fas fa-globe text-yellow-400"></i> Gen. Awareness</h3>
+                        <div class="space-y-3 flex-1" id="tasks-gk">
+                            <!-- Tasks injected by JS -->
+                        </div>
+                         <div class="mt-4 pt-4 border-t border-gray-700">
+                            <label class="text-xs text-gray-400 mb-1 block">Notes / Facts</label>
+                            <textarea id="notes-gk" class="glass-input text-sm h-20 resize-none" placeholder="Important facts..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sectional Mock Analysis -->
+                <h3 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">Sectional Mock Scores (Max 50)</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="glass-card p-4">
+                        <label class="block text-sm text-gray-400 mb-2">Maths Score</label>
+                        <input type="number" id="sec-score-maths" class="glass-input text-xl font-bold text-center" min="0" max="50" step="0.5" placeholder="--">
+                    </div>
+                    <div class="glass-card p-4">
+                        <label class="block text-sm text-gray-400 mb-2">English Score</label>
+                        <input type="number" id="sec-score-english" class="glass-input text-xl font-bold text-center" min="0" max="50" step="0.5" placeholder="--">
+                    </div>
+                    <div class="glass-card p-4">
+                        <label class="block text-sm text-gray-400 mb-2">Reasoning Score</label>
+                        <input type="number" id="sec-score-reasoning" class="glass-input text-xl font-bold text-center" min="0" max="50" step="0.5" placeholder="--">
+                    </div>
+                    <div class="glass-card p-4">
+                        <label class="block text-sm text-gray-400 mb-2">GK Score</label>
+                        <input type="number" id="sec-score-gk" class="glass-input text-xl font-bold text-center" min="0" max="50" step="0.5" placeholder="--">
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: Full Mocks -->
+            <section id="view-full-mocks" class="view-section">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold">Full Mock Analysis</h2>
+                        <p class="text-gray-400 text-sm">Track your 200-mark mock test performances.</p>
+                    </div>
+                    <button onclick="openMockModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/30">
+                        <i class="fas fa-plus mr-2"></i>Add Mock
+                    </button>
+                </div>
+
+                <div id="full-mocks-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <!-- Mocks generated by JS -->
+                </div>
+                <div id="no-mocks-message" class="hidden text-center py-12 glass-card">
+                    <i class="fas fa-clipboard-list text-4xl text-gray-500 mb-3"></i>
+                    <p class="text-gray-400">No full mocks recorded yet.</p>
+                </div>
+            </section>
+
+            <!-- VIEW: Progress Dashboard -->
+            <section id="view-progress" class="view-section space-y-8">
+                <div>
+                    <h2 class="text-2xl font-bold mb-2">Analytics Dashboard</h2>
+                    <p class="text-gray-400 text-sm">Visualizing your journey.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Progress Ring -->
+                    <div class="glass-card p-6 flex flex-col items-center justify-center">
+                        <h3 class="font-semibold mb-4 text-gray-300">Total Completion</h3>
+                        <svg viewBox="0 0 36 36" class="circular-chart text-blue-500 w-48 h-48">
+                            <path class="circle-bg"
+                              d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <path class="circle" id="chart-overall-ring"
+                              stroke-dasharray="0, 100"
+                              stroke="currentColor"
+                              d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <text x="18" y="20.35" class="percentage text-white" id="chart-overall-text">0%</text>
+                        </svg>
+                        <p class="mt-4 text-sm text-gray-400" id="chart-overall-days">0 / 60 Days Completed</p>
+                    </div>
+
+                    <!-- Subject Completion Bar -->
+                    <div class="glass-card p-6 lg:col-span-2">
+                         <h3 class="font-semibold mb-4 text-gray-300">Subject Task Completion</h3>
+                         <div class="h-64 relative">
+                             <canvas id="subjectBarChart"></canvas>
+                         </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Full Mock Trend -->
+                    <div class="glass-card p-6">
+                        <h3 class="font-semibold mb-4 text-gray-300">Full Mock Score Trend</h3>
+                        <div class="h-64 relative">
+                            <canvas id="mockTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Sectional Trend -->
+                    <div class="glass-card p-6">
+                        <h3 class="font-semibold mb-4 text-gray-300">Average Sectional Scores</h3>
+                        <div class="h-64 relative flex items-center justify-center">
+                            <canvas id="sectionalRadarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: Weak Areas Tracker -->
+            <section id="view-weak-areas" class="view-section">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold mb-2">Weak Areas Tracker</h2>
+                    <p class="text-gray-400 text-sm">Identify, track, and conquer your weaknesses.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                    <!-- Dynamic generation for each subject -->
+                    <div id="weak-maths-container"></div>
+                    <div id="weak-english-container"></div>
+                    <div id="weak-reasoning-container"></div>
+                    <div id="weak-gk-container"></div>
+                </div>
+            </section>
+
+            <!-- VIEW: Revision Vault -->
+            <section id="view-revision" class="view-section h-[calc(100vh-120px)] flex flex-col">
+                <div class="mb-4">
+                    <h2 class="text-2xl font-bold mb-2">Revision Vault</h2>
+                    <p class="text-gray-400 text-sm">Your digital notebook. Auto-saves as you type.</p>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="flex space-x-1 bg-app-card p-1 rounded-lg mb-4 overflow-x-auto">
+                    <button onclick="switchVaultTab('maths')" id="tab-maths" class="vault-tab flex-1 py-2 px-4 rounded-md text-sm font-medium bg-blue-500/20 text-blue-400 transition-colors whitespace-nowrap">Mathematics</button>
+                    <button onclick="switchVaultTab('english')" id="tab-english" class="vault-tab flex-1 py-2 px-4 rounded-md text-sm font-medium text-gray-400 hover:text-gray-200 transition-colors whitespace-nowrap">English Grammar</button>
+                    <button onclick="switchVaultTab('reasoning')" id="tab-reasoning" class="vault-tab flex-1 py-2 px-4 rounded-md text-sm font-medium text-gray-400 hover:text-gray-200 transition-colors whitespace-nowrap">Reasoning Tricks</button>
+                    <button onclick="switchVaultTab('gk')" id="tab-gk" class="vault-tab flex-1 py-2 px-4 rounded-md text-sm font-medium text-gray-400 hover:text-gray-200 transition-colors whitespace-nowrap">GK Facts</button>
+                </div>
+
+                <!-- Editor -->
+                <div class="flex-1 glass-card p-0 relative overflow-hidden flex flex-col">
+                    <textarea id="vault-editor" class="w-full flex-1 bg-transparent border-none text-white p-6 resize-none focus:ring-0 focus:outline-none" placeholder="Start typing your notes here..."></textarea>
+                    <div class="bg-gray-800/50 px-4 py-2 text-xs text-gray-400 flex justify-between border-t border-gray-700">
+                        <span id="vault-word-count">0 words</span>
+                        <span id="vault-last-saved">Saved just now</span>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Modal: Add/Edit Full Mock -->
+    <div id="mock-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-app-bg border border-app-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="p-6 border-b border-app-border flex justify-between items-center sticky top-0 bg-app-bg/95 backdrop-blur z-10">
+                <h3 class="text-xl font-bold" id="mock-modal-title">Log Full Mock</h3>
+                <button onclick="closeMockModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="mock-id">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Mock Number/Name</label>
+                        <input type="text" id="mock-name" class="glass-input" placeholder="e.g., Testbook Mock 1">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Date</label>
+                        <input type="date" id="mock-date" class="glass-input">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Score (/200)</label>
+                        <input type="number" id="mock-score" class="glass-input font-bold text-blue-400" step="0.5">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Accuracy (%)</label>
+                        <input type="number" id="mock-accuracy" class="glass-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Time Taken (min)</label>
+                        <input type="number" id="mock-time" class="glass-input" placeholder="Max 60">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Weak Areas Discovered</label>
+                    <input type="text" id="mock-weaknesses" class="glass-input" placeholder="Comma separated (e.g., Geometry, Cloze Test)">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Detailed Analysis & Mistakes</label>
+                    <textarea id="mock-notes" class="glass-input h-32 resize-none" placeholder="Where did you lose marks? What needs revision?"></textarea>
+                </div>
+            </div>
+            <div class="p-6 border-t border-app-border flex justify-end gap-3 bg-gray-900/50">
+                <button onclick="closeMockModal()" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition">Cancel</button>
+                <button onclick="saveMockEntry()" class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg shadow-blue-500/20 transition">Save Analysis</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Message Box Custom Alert -->
+    <div id="msg-modal" class="fixed inset-0 bg-black/60 z-[60] hidden items-center justify-center p-4">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-sm w-full text-center shadow-2xl transform scale-95 transition-transform" id="msg-box">
+            <div id="msg-icon" class="mb-4 text-4xl"></div>
+            <h3 id="msg-title" class="text-xl font-bold text-white mb-2"></h3>
+            <p id="msg-desc" class="text-gray-300 mb-6"></p>
+            <div class="flex justify-center gap-3" id="msg-actions">
+                <!-- Buttons injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. STATE MANAGEMENT ---
+        const APP_KEY = 'ssc_cgl_tracker_data_v1';
+        
+        // Define tasks template
+        const taskTemplate = {
+            maths: [
+                { id: 'm1', label: 'Self Mock Practice', completed: false },
+                { id: 'm2', label: 'Gagan Pratap Paper Sol.', completed: false },
+                { id: 'm3', label: 'Bhutesh Sir Mock Sol.', completed: false }
+            ],
+            english: [
+                { id: 'e1', label: 'Sectional Mock', completed: false },
+                { id: 'e2', label: 'English Video Class', completed: false },
+                { id: 'e3', label: 'OWS Revision', completed: false },
+                { id: 'e4', label: 'PQRS Practice', completed: false },
+                { id: 'e5', label: 'Anto-Syno Revision', completed: false },
+                { id: 'e6', label: 'Mixed Practice', completed: false }
+            ],
+            reasoning: [
+                { id: 'r1', label: 'Sectional Mock', completed: false },
+                { id: 'r2', label: 'Topic Video (Optional)', completed: false }
+            ],
+            gk: [
+                { id: 'g1', label: 'Sectional Mock', completed: false },
+                { id: 'g2', label: 'GK Video Lecture', completed: false },
+                { id: 'g3', label: 'Pinnacle 6500+ Practice', completed: false }
+            ]
+        };
+
+        const generateInitialDays = () => {
+            const days = {};
+            for (let i = 1; i <= 60; i++) {
+                // Deep copy template
+                days[i] = {
+                    tasks: JSON.parse(JSON.stringify(taskTemplate)),
+                    notes: { maths: '', english: '', reasoning: '', gk: '' },
+                    scores: { maths: null, english: null, reasoning: null, gk: null }
+                };
+            }
+            return days;
+        };
+
+        const defaultState = {
+            daysData: generateInitialDays(),
+            fullMocks: [],
+            weakAreas: {
+                maths: [], english: [], reasoning: [], gk: []
+            },
+            revisionVault: {
+                maths: '', english: '', reasoning: '', gk: ''
+            },
+            currentDayView: 1,
+            activeTabVault: 'maths'
+        };
+
+        let state = JSON.parse(localStorage.getItem(APP_KEY));
+        if (!state) {
+            state = defaultState;
+            saveState();
+        }
+
+        // Migration/Sanity check for older structures if any
+        if(!state.weakAreas.maths) state.weakAreas = defaultState.weakAreas;
+        if(!state.revisionVault.maths) state.revisionVault = defaultState.revisionVault;
+
+        function saveState() {
+            try {
+                localStorage.setItem(APP_KEY, JSON.stringify(state));
+                updateDashboardStats(); // Update stats whenever state changes
+            } catch (e) {
+                console.error("Local Storage Error. Data might not be saved.", e);
+            }
+        }
+
+        // --- 2. UTILITY & UI FUNCTIONS ---
+        
+        function showMessage(title, desc, type = 'info', confirmCallback = null) {
+            const modal = document.getElementById('msg-modal');
+            const box = document.getElementById('msg-box');
+            const icon = document.getElementById('msg-icon');
+            const actions = document.getElementById('msg-actions');
+            
+            document.getElementById('msg-title').innerText = title;
+            document.getElementById('msg-desc').innerText = desc;
+            
+            if (type === 'success') { icon.innerHTML = '<i class="fas fa-check-circle text-green-500"></i>'; }
+            else if (type === 'error') { icon.innerHTML = '<i class="fas fa-exclamation-circle text-red-500"></i>'; }
+            else if (type === 'warning') { icon.innerHTML = '<i class="fas fa-exclamation-triangle text-yellow-500"></i>'; }
+            else { icon.innerHTML = '<i class="fas fa-info-circle text-blue-500"></i>'; }
+
+            actions.innerHTML = '';
+            if (confirmCallback) {
+                actions.innerHTML = `
+                    <button class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white" onclick="closeMessage()">Cancel</button>
+                    <button class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white" id="msg-confirm-btn">Confirm</button>
+                `;
+                document.getElementById('msg-confirm-btn').onclick = () => {
+                    confirmCallback();
+                    closeMessage();
+                };
+            } else {
+                 actions.innerHTML = `<button class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white font-medium" onclick="closeMessage()">OK</button>`;
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => box.classList.remove('scale-95'), 10);
+        }
+
+        function closeMessage() {
+            const modal = document.getElementById('msg-modal');
+            const box = document.getElementById('msg-box');
+            box.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 150);
+        }
+
+        // Navigation
+        let chartsInstances = {};
+        function navigate(viewId) {
+            // Hide all
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(el => {
+                el.classList.remove('active', 'bg-blue-500/20', 'text-blue-400', 'border-blue-500');
+                el.classList.add('text-gray-300', 'border-transparent');
+            });
+            
+            // Show target
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            
+            // Update Nav styling
+            const navEl = document.getElementById(`nav-${viewId}`);
+            if(navEl) {
+                navEl.classList.add('active', 'bg-blue-500/20', 'text-blue-400', 'border-blue-500');
+                navEl.classList.remove('text-gray-300', 'border-transparent');
+            }
+
+            // Route Specific Inits
+            if (viewId === 'planner') renderPlanner();
+            if (viewId === 'full-mocks') renderMocksList();
+            if (viewId === 'progress') initCharts();
+            if (viewId === 'weak-areas') renderWeakAreas();
+            if (viewId === 'revision') renderVault();
+            if (viewId === 'home') updateDashboardStats();
+            
+            window.scrollTo(0,0);
+        }
+
+        function closeMobileMenu() {
+            document.getElementById('mobile-menu').classList.add('hidden');
+            document.getElementById('mobile-menu').classList.remove('flex');
+        }
+
+        // --- STREAMING_CHUNK:Implementing Core Logic for Calculations... ---
+        // --- 3. CALCULATIONS ---
+
+        function getDayCompletion(dayNum) {
+            const dayData = state.daysData[dayNum];
+            let total = 0;
+            let completed = 0;
+            
+            ['maths', 'english', 'reasoning', 'gk'].forEach(sub => {
+                dayData.tasks[sub].forEach(task => {
+                    total++;
+                    if(task.completed) completed++;
+                });
+            });
+            return total === 0 ? 0 : Math.round((completed / total) * 100);
+        }
+
+        function updateDashboardStats() {
+            let daysCompletedCount = 0;
+            let totalTasks = 0;
+            let totalCompletedTasks = 0;
+            let streak = 0;
+            let maxStreak = 0;
+            let currentStreakActive = true;
+
+            // Loop backwards for current streak
+            for (let i = 60; i >= 1; i--) {
+                let p = getDayCompletion(i);
+                
+                // Progress stats
+                ['maths', 'english', 'reasoning', 'gk'].forEach(sub => {
+                    state.daysData[i].tasks[sub].forEach(t => {
+                        totalTasks++;
+                        if(t.completed) totalCompletedTasks++;
+                    });
+                });
+
+                // Completed Day logic (>70%)
+                if (p >= 70) {
+                    daysCompletedCount++;
+                    if (currentStreakActive) streak++;
+                } else {
+                    if (currentStreakActive && i !== 60) { // Don't break streak if today isn't done yet, but simplified logic here
+                        currentStreakActive = false;
+                    }
+                }
+            }
+            
+            // Calc best streak (forward loop)
+            let tempStreak = 0;
+            for(let i = 1; i<=60; i++) {
+                if (getDayCompletion(i) >= 70) {
+                    tempStreak++;
+                    if (tempStreak > maxStreak) maxStreak = tempStreak;
+                } else {
+                    tempStreak = 0;
+                }
+            }
+
+            const overallProgress = totalTasks === 0 ? 0 : Math.round((totalCompletedTasks / totalTasks) * 100);
+            
+            // Update DOM Home Stats
+            document.getElementById('stat-days-completed').innerText = daysCompletedCount;
+            document.getElementById('stat-overall-progress').innerText = overallProgress;
+            document.getElementById('stat-current-streak').innerText = streak;
+            document.getElementById('stat-best-streak').innerText = maxStreak;
+            document.getElementById('stat-total-mocks').innerText = state.fullMocks.length;
+            
+            let avgAcc = state.fullMocks.length > 0 
+                ? (state.fullMocks.reduce((acc, curr) => acc + Number(curr.accuracy), 0) / state.fullMocks.length).toFixed(1) 
+                : 0;
+            document.getElementById('stat-avg-accuracy').innerText = avgAcc;
+
+            // Update Progress Ring in Analytics
+            const ringPath = document.getElementById('chart-overall-ring');
+            if(ringPath) {
+                ringPath.setAttribute('stroke-dasharray', `${overallProgress}, 100`);
+                document.getElementById('chart-overall-text').innerText = `${overallProgress}%`;
+                document.getElementById('chart-overall-days').innerText = `${daysCompletedCount} / 60 Days with >70% Completion`;
+                // Color change based on progress
+                if(overallProgress < 30) ringPath.setAttribute('stroke', '#ef4444');
+                else if(overallProgress < 70) ringPath.setAttribute('stroke', '#eab308');
+                else ringPath.setAttribute('stroke', '#10b981');
+            }
+        }
+
+
+        // --- STREAMING_CHUNK:Rendering Views - Planner and Day Details... ---
+        // --- 4. RENDER FUNCTIONS ---
+
+        function renderPlanner() {
+            const grid = document.getElementById('days-grid');
+            grid.innerHTML = '';
+            
+            for (let i = 1; i <= 60; i++) {
+                const comp = getDayCompletion(i);
+                let colorClass = 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500';
+                if (comp >= 100) colorClass = 'bg-green-900/40 border-green-500/50 text-green-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]';
+                else if (comp >= 70) colorClass = 'bg-yellow-900/40 border-yellow-500/50 text-yellow-400';
+                else if (comp > 0) colorClass = 'bg-blue-900/40 border-blue-500/50 text-blue-400';
+
+                const btn = document.createElement('button');
+                btn.className = `p-4 rounded-xl border flex flex-col items-center justify-center transition-all hover:scale-105 ${colorClass}`;
+                btn.innerHTML = `
+                    <span class="text-lg font-bold">Day ${i}</span>
+                    <span class="text-xs mt-1 opacity-80">${comp}%</span>
+                `;
+                btn.onclick = () => openDayDetails(i);
+                grid.appendChild(btn);
+            }
+        }
+
+        function openDayDetails(dayNum) {
+            state.currentDayView = dayNum;
+            navigate('day-details');
+            
+            document.getElementById('detail-day-title').innerText = `Day ${dayNum}`;
+            updateDayDetailHeaders();
+            
+            const dayData = state.daysData[dayNum];
+            
+            // Render Tasks
+            ['maths', 'english', 'reasoning', 'gk'].forEach(sub => {
+                const container = document.getElementById(`tasks-${sub}`);
+                container.innerHTML = '';
+                dayData.tasks[sub].forEach((task, index) => {
+                    const id = `task-${sub}-${dayNum}-${index}`;
+                    const div = document.createElement('div');
+                    div.className = 'flex items-start gap-3';
+                    div.innerHTML = `
+                        <input type="checkbox" id="${id}" class="checkbox-custom mt-1" ${task.completed ? 'checked' : ''}>
+                        <label for="${id}" class="text-sm cursor-pointer select-none ${task.completed ? 'text-gray-500 line-through' : 'text-gray-200'}">${task.label}</label>
+                    `;
+                    container.appendChild(div);
+
+                    // Add listener directly
+                    document.getElementById(id).addEventListener('change', (e) => {
+                        task.completed = e.target.checked;
+                        const label = e.target.nextElementSibling;
+                        if(e.target.checked) {
+                            label.classList.add('text-gray-500', 'line-through');
+                            label.classList.remove('text-gray-200');
+                        } else {
+                            label.classList.remove('text-gray-500', 'line-through');
+                            label.classList.add('text-gray-200');
+                        }
+                        saveState();
+                        updateDayDetailHeaders();
+                    });
+                });
+
+                // Set Notes
+                const noteEl = document.getElementById(`notes-${sub}`);
+                noteEl.value = dayData.notes[sub] || '';
+                noteEl.oninput = (e) => {
+                    dayData.notes[sub] = e.target.value;
+                    saveState();
+                };
+
+                // Set Scores
+                const scoreEl = document.getElementById(`sec-score-${sub}`);
+                scoreEl.value = dayData.scores[sub] !== null ? dayData.scores[sub] : '';
+                scoreEl.oninput = (e) => {
+                    let val = e.target.value === '' ? null : parseFloat(e.target.value);
+                    if(val > 50) val = 50;
+                    dayData.scores[sub] = val;
+                    saveState();
+                };
+            });
+        }
+
+        function updateDayDetailHeaders() {
+            const comp = getDayCompletion(state.currentDayView);
+            document.getElementById('detail-day-percent').innerText = `${comp}%`;
+            document.getElementById('detail-day-ring-text').innerText = `${comp}%`;
+            
+            const ringColor = comp === 100 ? '#10b981' : (comp >= 70 ? '#eab308' : '#3b82f6');
+            document.getElementById('detail-day-percent').style.color = ringColor;
+            document.getElementById('detail-day-ring-text').style.color = ringColor;
+            document.getElementById('detail-day-ring').style.borderTopColor = ringColor;
+        }
+
+        // --- STREAMING_CHUNK:Rendering Full Mocks and Chart Logic... ---
+        // --- 5. FULL MOCKS ---
+
+        function renderMocksList() {
+            const list = document.getElementById('full-mocks-list');
+            const msg = document.getElementById('no-mocks-message');
+            list.innerHTML = '';
+            
+            if (state.fullMocks.length === 0) {
+                list.classList.add('hidden');
+                msg.classList.remove('hidden');
+                return;
+            }
+            
+            list.classList.remove('hidden');
+            msg.classList.add('hidden');
+
+            // Sort by date desc
+            const sortedMocks = [...state.fullMocks].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedMocks.forEach(mock => {
+                const card = document.createElement('div');
+                card.className = 'glass-card p-6 flex flex-col relative group overflow-hidden';
+                
+                // Score color indicator
+                let scoreColor = 'bg-red-500';
+                if(mock.score >= 140) scoreColor = 'bg-green-500';
+                else if(mock.score >= 120) scoreColor = 'bg-blue-500';
+                else if(mock.score >= 100) scoreColor = 'bg-yellow-500';
+
+                card.innerHTML = `
+                    <div class="absolute top-0 left-0 w-1 h-full ${scoreColor}"></div>
+                    <div class="flex justify-between items-start mb-4 pl-3">
+                        <div>
+                            <h4 class="font-bold text-lg text-white">${mock.name}</h4>
+                            <p class="text-xs text-gray-400"><i class="far fa-calendar-alt mr-1"></i> ${new Date(mock.date).toLocaleDateString()}</p>
+                        </div>
+                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editMock('${mock.id}')" class="text-blue-400 hover:text-blue-300 p-1"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteMock('${mock.id}')" class="text-red-400 hover:text-red-300 p-1"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-2 mb-4 pl-3 border-b border-gray-700 pb-4">
+                        <div>
+                            <p class="text-xs text-gray-500">Score</p>
+                            <p class="font-bold text-xl text-white">${mock.score}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Accuracy</p>
+                            <p class="font-bold text-lg text-gray-300">${mock.accuracy}%</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Time</p>
+                            <p class="font-bold text-lg text-gray-300">${mock.time}m</p>
+                        </div>
+                    </div>
+
+                    <div class="pl-3 flex-1 flex flex-col gap-2">
+                        ${mock.weaknesses ? `
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Identified Weaknesses</p>
+                            <div class="flex flex-wrap gap-1">
+                                ${mock.weaknesses.split(',').map(w => `<span class="text-[10px] bg-red-500/20 text-red-300 px-2 py-0.5 rounded border border-red-500/30">${w.trim()}</span>`).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${mock.notes ? `
+                        <div class="mt-2">
+                            <p class="text-xs text-gray-500 mb-1">Analysis Notes</p>
+                            <p class="text-sm text-gray-300 line-clamp-2 italic">"${mock.notes}"</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function openMockModal() {
+            document.getElementById('mock-modal').classList.remove('hidden');
+            document.getElementById('mock-modal').classList.add('flex');
+            document.getElementById('mock-modal-title').innerText = 'Log Full Mock';
+            // Reset form
+            ['mock-id', 'mock-name', 'mock-score', 'mock-accuracy', 'mock-time', 'mock-weaknesses', 'mock-notes'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('mock-date').valueAsDate = new Date();
+        }
+
+        function closeMockModal() {
+            document.getElementById('mock-modal').classList.add('hidden');
+            document.getElementById('mock-modal').classList.remove('flex');
+        }
+
+        function saveMockEntry() {
+            const id = document.getElementById('mock-id').value || Date.now().toString();
+            const mock = {
+                id: id,
+                name: document.getElementById('mock-name').value || `Mock Test`,
+                date: document.getElementById('mock-date').value,
+                score: parseFloat(document.getElementById('mock-score').value) || 0,
+                accuracy: parseFloat(document.getElementById('mock-accuracy').value) || 0,
+                time: parseFloat(document.getElementById('mock-time').value) || 0,
+                weaknesses: document.getElementById('mock-weaknesses').value,
+                notes: document.getElementById('mock-notes').value
+            };
+
+            const existingIndex = state.fullMocks.findIndex(m => m.id === id);
+            if(existingIndex > -1) {
+                state.fullMocks[existingIndex] = mock;
+            } else {
+                state.fullMocks.push(mock);
+            }
+
+            saveState();
+            closeMockModal();
+            renderMocksList();
+            showMessage('Success', 'Mock Analysis saved.', 'success');
+        }
+
+        function editMock(id) {
+            const mock = state.fullMocks.find(m => m.id === id);
+            if(!mock) return;
+            
+            openMockModal();
+            document.getElementById('mock-modal-title').innerText = 'Edit Mock Analysis';
+            document.getElementById('mock-id').value = mock.id;
+            document.getElementById('mock-name').value = mock.name;
+            document.getElementById('mock-date').value = mock.date;
+            document.getElementById('mock-score').value = mock.score;
+            document.getElementById('mock-accuracy').value = mock.accuracy;
+            document.getElementById('mock-time').value = mock.time;
+            document.getElementById('mock-weaknesses').value = mock.weaknesses;
+            document.getElementById('mock-notes').value = mock.notes;
+        }
+
+        function deleteMock(id) {
+            showMessage('Confirm Deletion', 'Are you sure you want to delete this mock record?', 'warning', () => {
+                state.fullMocks = state.fullMocks.filter(m => m.id !== id);
+                saveState();
+                renderMocksList();
+            });
+        }
+
+        // --- STREAMING_CHUNK:Chart.js Integration for Analytics Dashboard... ---
+        // --- 6. CHARTS ---
+
+        function initCharts() {
+            // Destroy existing instances
+            Object.keys(chartsInstances).forEach(key => {
+                if(chartsInstances[key]) chartsInstances[key].destroy();
+            });
+
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = 'Inter';
+
+            initSubjectBarChart();
+            initMockTrendChart();
+            initRadarChart();
+        }
+
+        function initSubjectBarChart() {
+            const ctx = document.getElementById('subjectBarChart').getContext('2d');
+            
+            let completed = { maths: 0, english: 0, reasoning: 0, gk: 0 };
+            let total = { maths: 0, english: 0, reasoning: 0, gk: 0 };
+
+            for(let i=1; i<=60; i++){
+                ['maths', 'english', 'reasoning', 'gk'].forEach(sub => {
+                    state.daysData[i].tasks[sub].forEach(t => {
+                        total[sub]++;
+                        if(t.completed) completed[sub]++;
+                    });
+                });
+            }
+
+            const data = [
+                Math.round((completed.maths/total.maths)*100)||0,
+                Math.round((completed.english/total.english)*100)||0,
+                Math.round((completed.reasoning/total.reasoning)*100)||0,
+                Math.round((completed.gk/total.gk)*100)||0
+            ];
+
+            chartsInstances['subjectBar'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Maths', 'English', 'Reasoning', 'GK'],
+                    datasets: [{
+                        label: 'Completion %',
+                        data: data,
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(168, 85, 247, 0.6)',
+                            'rgba(34, 197, 94, 0.6)',
+                            'rgba(234, 179, 8, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgb(59, 130, 246)',
+                            'rgb(168, 85, 247)',
+                            'rgb(34, 197, 94)',
+                            'rgb(234, 179, 8)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function initMockTrendChart() {
+            const ctx = document.getElementById('mockTrendChart').getContext('2d');
+            const sorted = [...state.fullMocks].sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            const labels = sorted.map((_, i) => `M${i+1}`);
+            const data = sorted.map(m => m.score);
+
+            chartsInstances['mockTrend'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Score / 200',
+                        data: data,
+                        borderColor: '#ec4899',
+                        backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#ec4899'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: false, suggestedMin: 80, max: 200, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function initRadarChart() {
+            const ctx = document.getElementById('sectionalRadarChart').getContext('2d');
+            
+            let sums = { maths: 0, english: 0, reasoning: 0, gk: 0 };
+            let counts = { maths: 0, english: 0, reasoning: 0, gk: 0 };
+
+            for(let i=1; i<=60; i++){
+                 ['maths', 'english', 'reasoning', 'gk'].forEach(sub => {
+                     const s = state.daysData[i].scores[sub];
+                     if(s !== null) {
+                         sums[sub] += s;
+                         counts[sub]++;
+                     }
+                 });
+            }
+
+            const data = [
+                counts.maths ? (sums.maths/counts.maths).toFixed(1) : 0,
+                counts.english ? (sums.english/counts.english).toFixed(1) : 0,
+                counts.reasoning ? (sums.reasoning/counts.reasoning).toFixed(1) : 0,
+                counts.gk ? (sums.gk/counts.gk).toFixed(1) : 0
+            ];
+
+            chartsInstances['radar'] = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Maths', 'English', 'Reasoning', 'GK'],
+                    datasets: [{
+                        label: 'Avg Score (/50)',
+                        data: data,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: '#3b82f6',
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255,255,255,0.1)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            pointLabels: { color: '#e2e8f0', font: { size: 12 } },
+                            ticks: { display: false, max: 50, min: 0 }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // --- STREAMING_CHUNK:Implementing Weak Areas and Revision Vault... ---
+        // --- 7. WEAK AREAS ---
+
+        const subjectColors = { maths: 'blue', english: 'purple', reasoning: 'green', gk: 'yellow' };
+        const subjectIcons = { maths: 'calculator', english: 'font', reasoning: 'brain', gk: 'globe' };
+
+        function renderWeakAreas() {
+            ['maths', 'english', 'reasoning', 'gk'].forEach(sub => {
+                const container = document.getElementById(`weak-${sub}-container`);
+                const color = subjectColors[sub];
+                
+                let html = `
+                    <div class="glass-card border-t-4 border-t-${color}-500 p-5 flex flex-col h-[400px]">
+                        <h3 class="font-bold text-lg mb-4 capitalize flex items-center gap-2 text-white">
+                            <i class="fas fa-${subjectIcons[sub]} text-${color}-400"></i> ${sub === 'gk' ? 'Gen. Awareness' : sub}
+                        </h3>
+                        
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="weak-input-${sub}" class="glass-input text-sm flex-1" placeholder="Add topic (e.g. Geometry)" onkeypress="if(event.key === 'Enter') addWeakArea('${sub}')">
+                            <button onclick="addWeakArea('${sub}')" class="bg-${color}-600 hover:bg-${color}-700 text-white p-2 rounded-lg transition"><i class="fas fa-plus"></i></button>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                `;
+
+                const items = state.weakAreas[sub] || [];
+                if(items.length === 0) {
+                    html += `<p class="text-xs text-gray-500 text-center mt-10 italic">No weak areas identified yet. Great job!</p>`;
+                } else {
+                    items.forEach((item, index) => {
+                        html += `
+                            <div class="flex items-center justify-between p-2 rounded bg-gray-800/50 border border-gray-700/50 group">
+                                <span class="text-sm ${item.mastered ? 'text-gray-500 line-through' : 'text-gray-200'}">${item.text}</span>
+                                <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="toggleMastered('${sub}', ${index})" class="${item.mastered ? 'text-yellow-400' : 'text-green-400'} hover:scale-110" title="${item.mastered ? 'Mark Unmastered' : 'Mark Mastered'}">
+                                        <i class="fas ${item.mastered ? 'fa-undo' : 'fa-check-double'}"></i>
+                                    </button>
+                                    <button onclick="deleteWeakArea('${sub}', ${index})" class="text-red-400 hover:scale-110"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `</div></div>`;
+                container.innerHTML = html;
+            });
+        }
+
+        function addWeakArea(sub) {
+            const input = document.getElementById(`weak-input-${sub}`);
+            const text = input.value.trim();
+            if(!text) return;
+            
+            if(!state.weakAreas[sub]) state.weakAreas[sub] = [];
+            state.weakAreas[sub].push({ text: text, mastered: false });
+            
+            input.value = '';
+            saveState();
+            renderWeakAreas();
+        }
+
+        function toggleMastered(sub, index) {
+            state.weakAreas[sub][index].mastered = !state.weakAreas[sub][index].mastered;
+            saveState();
+            renderWeakAreas();
+        }
+
+        function deleteWeakArea(sub, index) {
+            state.weakAreas[sub].splice(index, 1);
+            saveState();
+            renderWeakAreas();
+        }
+
+        // --- 8. REVISION VAULT ---
+
+        let saveTimeout;
+        function renderVault() {
+            switchVaultTab(state.activeTabVault || 'maths');
+            
+            const editor = document.getElementById('vault-editor');
+            editor.oninput = () => {
+                clearTimeout(saveTimeout);
+                updateWordCount();
+                document.getElementById('vault-last-saved').innerText = 'Saving...';
+                
+                saveTimeout = setTimeout(() => {
+                    state.revisionVault[state.activeTabVault] = editor.value;
+                    saveState();
+                    
+                    const now = new Date();
+                    document.getElementById('vault-last-saved').innerText = `Saved at ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                }, 1000);
+            };
+        }
+
+        function switchVaultTab(sub) {
+            state.activeTabVault = sub;
+            saveState();
+
+            // Style tabs
+            document.querySelectorAll('.vault-tab').forEach(t => {
+                t.classList.remove('bg-blue-500/20', 'text-blue-400');
+                t.classList.add('text-gray-400');
+            });
+            const activeTab = document.getElementById(`tab-${sub}`);
+            activeTab.classList.remove('text-gray-400');
+            activeTab.classList.add('bg-blue-500/20', 'text-blue-400');
+
+            // Set content
+            const editor = document.getElementById('vault-editor');
+            editor.value = state.revisionVault[sub] || '';
+            editor.placeholder = `Start typing your ${sub} revision notes here...`;
+            
+            updateWordCount();
+            document.getElementById('vault-last-saved').innerText = 'Synced';
+        }
+
+        function updateWordCount() {
+            const text = document.getElementById('vault-editor').value;
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            document.getElementById('vault-word-count').innerText = `${words} words`;
+        }
+
+        // --- STREAMING_CHUNK:Final Setup and Motivations... ---
+        // --- 9. MOTIVATION & EXTRAS ---
+
+        const quotes = [
+            "Consistency beats motivation every single time.",
+            "Small improvements daily create massive results.",
+            "Every mock analyzed is a step closer to selection.",
+            "Selection is built one day at a time.",
+            "Don't count the days, make the days count.",
+            "Pain of discipline > Pain of regret.",
+            "Your future self is watching you right now."
+        ];
+
+        function initCountdown() {
+            // Assume exam is roughly 60 days from now for demo, or set fixed date
+            // Let's create a visual countdown that decreases based on 'days completed'
+            // Actually, requirements ask for "58 Days Left" example. Let's make it a real date 60 days from first open.
+            
+            if(!state.examDate) {
+                const d = new Date();
+                d.setDate(d.getDate() + 60);
+                state.examDate = d.getTime();
+                saveState();
+            }
+
+            const updateTimer = () => {
+                const now = new Date().getTime();
+                const distance = state.examDate - now;
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                document.getElementById('dash-countdown').innerText = days > 0 ? days : 0;
+            };
+            
+            updateTimer();
+            setInterval(updateTimer, 86400000); // Update daily
+        }
+
+        function resetData() {
+            showMessage('DANGER: Hard Reset', 'This will delete ALL your progress, mocks, and notes forever. Type "RESET" below to confirm.', 'error', () => {
+                const confirmation = prompt("Type 'RESET' to delete everything:");
+                if(confirmation === 'RESET') {
+                    localStorage.removeItem(APP_KEY);
+                    location.reload();
+                } else {
+                    alert("Reset cancelled.");
+                }
+            });
+        }
+
+        // Init
+        window.onload = () => {
+            // Setup quote
+            document.getElementById('motivational-quote').innerText = `"${quotes[Math.floor(Math.random() * quotes.length)]}"`;
+            
+            initCountdown();
+            updateDashboardStats();
+            
+            // Mobile Menu Listeners
+            document.getElementById('mobile-menu-btn').onclick = () => {
+                const menu = document.getElementById('mobile-menu');
+                menu.classList.remove('hidden');
+                menu.classList.add('flex');
+            };
+            document.getElementById('close-menu-btn').onclick = closeMobileMenu;
+
+            // Start at home
+            navigate('home');
+        };
+
+    </script>
+</body>
+</html>
